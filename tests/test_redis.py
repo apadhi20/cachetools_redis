@@ -14,7 +14,7 @@ def test_ttl(redis):
     key1 = r_ttl.redis_key("1")
     r_ttl[key1] = "1"
 
-    assert r_ttl[key1] == redis.get(key1)
+    assert r_ttl[key1] == RedisTTL.deserialize(redis.get(key1))
     assert r_ttl[key1] == "1"
     assert len(r_ttl) == 1
 
@@ -23,7 +23,7 @@ def test_ttl(redis):
     key2 = r_ttl.redis_key("2")
     r_ttl[key2] = "2"
 
-    assert r_ttl[key2] == redis.get(key2)
+    assert r_ttl[key2] == RedisTTL.deserialize(redis.get(key2))
     assert r_ttl[key2] == "2"
     assert len(r_ttl) == 2
 
@@ -34,7 +34,7 @@ def test_ttl(redis):
 
     time.sleep(1)
 
-    assert not key2 in r_ttl    
+    assert not key2 in r_ttl
     assert len(r_ttl) == 0
 
 def test_ttl_invalidate(redis):
@@ -46,7 +46,7 @@ def test_ttl_invalidate(redis):
     )
 
     key1 = r_ttl.redis_key("1")
-    r_ttl[key1] = "1"
+    r_ttl[key1] = RedisTTL.serialize("1")
 
     assert len(r_ttl) == 1
 
@@ -78,23 +78,22 @@ def test_redis_lru(redis):
 
     with pytest.raises(KeyError):
         for x in range(3):
-            redis.set(r_lru.redis_key(x), x)
-        
+            encoded_x = RedisLRU.serialize(x)
+            redis.set(r_lru.redis_key(x), encoded_x)
+
         r_lru[key1] = "1"
-        
+
     r_lru.invalidateAll()
     assert len(r_lru) == 0
 
     r_lru[key1] = "1"
 
-    assert r_lru[key1] == redis.get(key1)
-    assert r_lru[key1] == "1"
-    assert len(r_lru) == 1
+    assert r_lru[key1] == RedisLRU.deserialize(redis.get(key1))
 
     key2 = r_lru.redis_key("2-1")
     r_lru[key2] = "2"
 
-    assert r_lru[key2] == redis.get(key2)
+    assert r_lru[key2] == RedisLRU.deserialize(redis.get(key2))
     assert r_lru[key2] == "2"
     assert len(r_lru) == 2
 

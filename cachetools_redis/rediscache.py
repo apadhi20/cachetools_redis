@@ -1,5 +1,6 @@
 from cachetools.cache import Cache
 import redis
+import pickle
 
 
 class RedisCache(Cache):
@@ -18,7 +19,7 @@ class RedisCache(Cache):
         try:
             val = self.__redis.get(str(key))
             if val:
-                return val
+                return RedisCache.deserialize(val)
             else:
                 raise KeyError()
         except KeyError:
@@ -28,7 +29,7 @@ class RedisCache(Cache):
         while len(self) + 1 > self.__max_keys:
             self.popitem()
 
-        self.__redis.set(str(key), value)
+        self.__redis.set(str(key), RedisCache.serialize(value))
 
     def __delitem__(self, key):
         self.__redis.delete(str(key))
@@ -52,11 +53,19 @@ class RedisCache(Cache):
 
     def invalidateAll(self):
         for key in self:
-            self.__redis.delete(str(key))
+            self.__redis.delete(key)
 
     def invalidate(self, key):
         """ Equivalent to del self[key] """
         del self[key]
+
+    @staticmethod
+    def deserialize(value):
+        return pickle.loads(value)
+
+    @staticmethod
+    def serialize(value):
+        return pickle.dumps(value)
 
     @property
     def max_keys(self):
